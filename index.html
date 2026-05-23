@@ -161,17 +161,50 @@
     }
     #win-overlay.show, #start-overlay.show { display: flex; }
 
-    #win-card {
+    .card {
       background: #fff;
       border-radius: 20px;
       padding: 1.75rem 1.5rem;
       text-align: center;
-      width: min(90vw, 300px);
+      width: min(90vw, 320px);
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
       box-shadow: 0 24px 64px rgba(0,0,0,0.25);
       animation: card-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #mode-selector {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: #f3f4f6;
+      border-radius: 999px;
+      margin-top: 0.75rem;
+    }
+    .mode-btn {
+      flex: 1;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.45rem 0.5rem;
+      border: none;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mode-btn.selected {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    #mode-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      min-height: 1rem;
+      line-height: 1.3;
     }
 
     #win-emoji { font-size: 2.5rem; }
@@ -259,7 +292,7 @@
 </div>
 
 <div id="win-overlay">
-  <div id="win-card">
+  <div class="card">
     <div id="win-emoji"></div>
     <div id="win-msg"></div>
     <button id="play-again-btn">Play Again</button>
@@ -267,9 +300,14 @@
 </div>
 
 <div id="start-overlay">
-  <div id="win-card">
+  <div class="card">
     <div id="start-symbol"></div>
     <div id="start-msg"></div>
+    <div id="mode-selector">
+      <button class="mode-btn" data-mode="random">Random</button>
+      <button class="mode-btn" data-mode="balanced">Balanced</button>
+    </div>
+    <div id="mode-desc"></div>
     <button id="start-btn">Start!</button>
   </div>
 </div>
@@ -281,16 +319,6 @@ const WIN_LINES = [
   [0,4,8],[2,4,6],
 ];
 
-// Wheel is drawn with segment 0 (X) starting at 12 o'clock and going clockwise.
-// To bring segment i's center to the pointer at the top, rotate by:
-//   θ = (337.5 - i * 45) mod 360
-// X segments (i = 0, 2, 4, 6): 337.5, 247.5, 157.5, 67.5
-// O segments (i = 1, 3, 5, 7): 292.5, 202.5, 112.5, 22.5
-const SEG_CENTERS = {
-  X: [337.5, 247.5, 157.5, 67.5],
-  O: [292.5, 202.5, 112.5, 22.5],
-};
-
 let board = Array(9).fill(null);
 let currentPlayer = 'X';
 let firstPlayer = 'O'; // toggles to 'X' on first showStartOverlay call
@@ -298,6 +326,9 @@ let spinResult = null;
 let spinning = false;
 let gameOver = false;
 let wheelRotation = 0;
+let mode = 'random';        // 'random' or 'balanced'
+let wedges = [];            // current wedge layout, e.g. ['X','O','X','O',...]
+let lastWedgeIndex = null;  // index of last-landed wedge (for balanced removal)
 
 const wheelEl      = document.getElementById('wheel');
 const spinBtn      = document.getElementById('spin-btn');
@@ -312,15 +343,38 @@ const startOverlay = document.getElementById('start-overlay');
 const startSymbol  = document.getElementById('start-symbol');
 const startMsg     = document.getElementById('start-msg');
 const startBtn     = document.getElementById('start-btn');
+const modeBtns     = [...document.querySelectorAll('.mode-btn')];
+const modeDesc     = document.getElementById('mode-desc');
+
+function initWheel() {
+  wedges = mode === 'balanced'
+    ? ['X','O','X','O','X','O','X','O','X','O']  // 10 wedges, 5 of each
+    : ['X','O','X','O','X','O','X','O'];          // 8 wedges, 4 of each
+  // Reset rotation without animating
+  wheelEl.style.transition = 'none';
+  wheelEl.style.transform = 'rotate(0deg)';
+  wheelRotation = 0;
+  buildWheel();
+}
+
+function rebuildWheel() {
+  // Used during play to redraw with one fewer wedge (balanced mode)
+  wheelEl.style.transition = 'none';
+  wheelEl.style.transform = 'rotate(0deg)';
+  wheelRotation = 0;
+  buildWheel();
+}
 
 function buildWheel() {
+  wheelEl.innerHTML = '';
   const ns = 'http://www.w3.org/2000/svg';
   const cx = 100, cy = 100, r = 95;
-  const segments = 8;
-  const segDeg = 360 / segments;
+  const n = wedges.length;
+  const segDeg = 360 / n;
+  const fontSize = Math.min(28, Math.round(segDeg * 0.55));
 
-  for (let i = 0; i < segments; i++) {
-    const isX = i % 2 === 0;
+  for (let i = 0; i < n; i++) {
+    const isX = wedges[i] === 'X';
     const a0 = (-90 + i * segDeg) * Math.PI / 180;
     const a1 = (-90 + (i + 1) * segDeg) * Math.PI / 180;
     const x0 = cx + r * Math.cos(a0);
@@ -347,15 +401,15 @@ function buildWheel() {
     txt.setAttribute('text-anchor', 'middle');
     txt.setAttribute('dominant-baseline', 'middle');
     txt.setAttribute('fill', '#ffffff');
-    txt.setAttribute('font-size', '26');
+    txt.setAttribute('font-size', String(fontSize));
     txt.setAttribute('font-weight', '900');
     txt.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
-    txt.textContent = isX ? 'X' : 'O';
+    txt.textContent = wedges[i];
     wheelEl.appendChild(txt);
   }
 
-  // Tick marks at every segment boundary
-  for (let i = 0; i < segments; i++) {
+  // Tick marks at every wedge boundary
+  for (let i = 0; i < n; i++) {
     const a = (-90 + i * segDeg) * Math.PI / 180;
     const inner = cx + (r - 4) * Math.cos(a);
     const innerY = cy + (r - 4) * Math.sin(a);
@@ -380,11 +434,18 @@ function buildWheel() {
   wheelEl.appendChild(hub);
 }
 
-function getTarget(result) {
-  const centers = SEG_CENTERS[result];
-  const center = centers[Math.floor(Math.random() * centers.length)];
-  const wobble = (Math.random() - 0.5) * 26; // ±13° within the segment
-  const targetAngle = (center + wobble + 360) % 360;
+function getTarget(wedgeIndex) {
+  const n = wedges.length;
+  const segDeg = 360 / n;
+  // Rotation needed to bring wedge `wedgeIndex` under the top pointer.
+  // Wedge i's center sits at angle (i + 0.5) * segDeg clockwise from the top
+  // when the wheel is unrotated; to bring it back to the top we rotate by
+  // 360 - (i + 0.5) * segDeg.
+  const centerAngle = (360 - (wedgeIndex + 0.5) * segDeg) % 360;
+
+  const margin = segDeg * 0.18;
+  const wobble = (Math.random() - 0.5) * (segDeg - 2 * margin);
+  const targetAngle = (centerAngle + wobble + 360) % 360;
 
   const currAngle = ((wheelRotation % 360) + 360) % 360;
   let delta = (targetAngle - currAngle + 360) % 360;
@@ -394,6 +455,22 @@ function getTarget(result) {
   return wheelRotation + fullSpins + delta;
 }
 
+function pickWedgeIndex() {
+  if (mode === 'balanced') {
+    // Uniform pick from remaining wedges. Their distribution determines the
+    // probability of X vs. O for this spin.
+    return Math.floor(Math.random() * wedges.length);
+  }
+  // Random mode: independent 50/50 each spin, then pick any matching wedge
+  // so the wheel can land in any of that symbol's slots.
+  const symbol = Math.random() < 0.5 ? 'X' : 'O';
+  const matching = [];
+  for (let i = 0; i < wedges.length; i++) {
+    if (wedges[i] === symbol) matching.push(i);
+  }
+  return matching[Math.floor(Math.random() * matching.length)];
+}
+
 function doSpin() {
   if (spinning || spinResult !== null || gameOver) return;
   spinning = true;
@@ -401,8 +478,10 @@ function doSpin() {
   spinResultEl.textContent = '';
   spinResultEl.className = '';
 
-  const result = Math.random() < 0.5 ? 'X' : 'O';
-  const target = getTarget(result);
+  const wedgeIndex = pickWedgeIndex();
+  const result = wedges[wedgeIndex];
+  lastWedgeIndex = wedgeIndex;
+  const target = getTarget(wedgeIndex);
 
   wheelEl.style.transition = 'transform 5s cubic-bezier(0.15, 0.92, 0.08, 1)';
   wheelEl.style.transform = `rotate(${target}deg)`;
@@ -456,6 +535,13 @@ function handleCell(e) {
   spinResultEl.textContent = '';
   spinResultEl.className = '';
   spinBtn.disabled = false;
+
+  if (mode === 'balanced' && lastWedgeIndex !== null) {
+    wedges.splice(lastWedgeIndex, 1);
+    rebuildWheel();
+  }
+  lastWedgeIndex = null;
+
   updateTurn();
 }
 
@@ -492,6 +578,7 @@ function resetGame() {
   spinResult = null;
   spinning = false;
   gameOver = false;
+  lastWedgeIndex = null;
 
   cells.forEach(cell => {
     cell.textContent = '';
@@ -510,6 +597,8 @@ function showStartOverlay() {
   startSymbol.className = firstPlayer.toLowerCase() + ' pop';
   startMsg.textContent = `Player ${firstPlayer} goes first!`;
   spinBtn.disabled = true;
+  updateModeUI();
+  initWheel();
   startOverlay.classList.add('show');
   updateTurn();
 }
@@ -519,12 +608,28 @@ function dismissStart() {
   spinBtn.disabled = false;
 }
 
+function updateModeUI() {
+  modeBtns.forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.mode === mode);
+  });
+  modeDesc.textContent = mode === 'balanced'
+    ? 'Used wedges disappear — odds shift to keep things balanced.'
+    : 'Pure 50/50 each spin — streaks can happen!';
+}
+
+function changeMode(newMode) {
+  if (mode === newMode) return;
+  mode = newMode;
+  updateModeUI();
+  initWheel();
+}
+
 spinBtn.addEventListener('click', doSpin);
 playAgainBtn.addEventListener('click', resetGame);
 startBtn.addEventListener('click', dismissStart);
+modeBtns.forEach(btn => btn.addEventListener('click', () => changeMode(btn.dataset.mode)));
 cells.forEach(cell => cell.addEventListener('click', handleCell));
 
-buildWheel();
 showStartOverlay();
 </script>
 </body>
