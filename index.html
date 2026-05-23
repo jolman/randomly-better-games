@@ -348,8 +348,8 @@ const modeDesc     = document.getElementById('mode-desc');
 
 function initWheel() {
   wedges = mode === 'balanced'
-    ? ['X','O','X','O','X','O','X','O','X','O']  // 10 wedges, 5 of each
-    : ['X','O','X','O','X','O','X','O'];          // 8 wedges, 4 of each
+    ? ['X','O','X','O','X','O','X','O','X','O','X','O']  // 12 wedges, 6 of each
+    : ['X','O','X','O','X','O','X','O'];                  // 8 wedges, 4 of each
   // Reset rotation without animating
   wheelEl.style.transition = 'none';
   wheelEl.style.transform = 'rotate(0deg)';
