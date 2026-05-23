@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Enhanced Tic-Tac-Toe</title>
+  <style>
+    :root {
+      --x: #3b82f6;
+      --o: #ef4444;
+      --bg: #faf8f5;
+      --surface: #ffffff;
+      --text: #1a1a2e;
+      --muted: #9ca3af;
+      --border: #e5e7eb;
+      --win: #fbbf24;
+      --radius: 14px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 1rem 2rem;
+      gap: 0.75rem;
+    }
+
+    h1 {
+      font-size: clamp(1.15rem, 5vw, 1.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-top: 0.25rem;
+    }
+
+    #turn-info {
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.4rem 1.1rem;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 2.5px solid var(--border);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #turn-info.x-turn { border-color: var(--x); color: var(--x); }
+    #turn-info.o-turn { border-color: var(--o); color: var(--o); }
+
+    #spinner-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    #wheel-wrap {
+      position: relative;
+      width: 170px;
+      height: 170px;
+    }
+
+    #pointer {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 15px solid var(--text);
+      z-index: 1;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15));
+    }
+
+    #wheel {
+      width: 170px;
+      height: 170px;
+      transform-origin: center;
+      display: block;
+      border-radius: 50%;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+    }
+
+    #spin-btn {
+      font-size: 1rem;
+      font-weight: 800;
+      padding: 0.65rem 2rem;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      background: var(--text);
+      color: #fff;
+      letter-spacing: 0.02em;
+      transition: transform 0.1s, opacity 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    #spin-btn:active:not(:disabled) { transform: scale(0.94); }
+    #spin-btn:disabled { opacity: 0.35; cursor: default; }
+
+    #spin-result {
+      font-size: 1rem;
+      font-weight: 700;
+      min-height: 1.4rem;
+      text-align: center;
+    }
+    #spin-result.x { color: var(--x); }
+    #spin-result.o { color: var(--o); }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      width: min(82vw, 320px);
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(2rem, 9vw, 3.5rem);
+      font-weight: 900;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: background 0.12s, border-color 0.2s, transform 0.1s;
+      cursor: default;
+    }
+    .cell.available { cursor: pointer; }
+    .cell.available:hover { background: #f3f4f6; }
+    .cell.available:active { transform: scale(0.92); }
+    .cell.x { color: var(--x); }
+    .cell.o { color: var(--o); }
+    .cell.winning {
+      background: #fef3c7;
+      border-color: var(--win);
+    }
+
+    #win-overlay, #start-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 1rem;
+    }
+    #win-overlay.show, #start-overlay.show { display: flex; }
+
+    #win-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 1.75rem 1.5rem;
+      text-align: center;
+      width: min(90vw, 300px);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+      animation: card-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #win-emoji { font-size: 2.5rem; }
+    #win-msg {
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+    #win-msg.x { color: var(--x); }
+    #win-msg.o { color: var(--o); }
+
+    #start-symbol {
+      font-size: 4.5rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    #start-symbol.x { color: var(--x); }
+    #start-symbol.o { color: var(--o); }
+    #start-msg {
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    #play-again-btn, #start-btn {
+      font-size: 1rem;
+      font-weight: 800;
+      padding: 0.7rem 2rem;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      background: var(--text);
+      color: #fff;
+      margin-top: 0.75rem;
+      transition: transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #play-again-btn:active, #start-btn:active { transform: scale(0.94); }
+
+    @keyframes pop {
+      0%   { transform: scale(0.7); opacity: 0; }
+      65%  { transform: scale(1.12); }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+    @keyframes place {
+      0%   { transform: scale(0); opacity: 0; }
+      70%  { transform: scale(1.15); }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+    @keyframes card-in {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .pop { animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+    .cell.x, .cell.o {
+      animation: place 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Enhanced Tic-Tac-Toe</h1>
+<div id="turn-info">Player X's turn</div>
+
+<div id="spinner-section">
+  <div id="wheel-wrap">
+    <div id="pointer"></div>
+    <svg id="wheel" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <button id="spin-btn">Spin!</button>
+  <div id="spin-result"></div>
+</div>
+
+<div id="board">
+  <div class="cell" data-i="0"></div>
+  <div class="cell" data-i="1"></div>
+  <div class="cell" data-i="2"></div>
+  <div class="cell" data-i="3"></div>
+  <div class="cell" data-i="4"></div>
+  <div class="cell" data-i="5"></div>
+  <div class="cell" data-i="6"></div>
+  <div class="cell" data-i="7"></div>
+  <div class="cell" data-i="8"></div>
+</div>
+
+<div id="win-overlay">
+  <div id="win-card">
+    <div id="win-emoji"></div>
+    <div id="win-msg"></div>
+    <button id="play-again-btn">Play Again</button>
+  </div>
+</div>
+
+<div id="start-overlay">
+  <div id="win-card">
+    <div id="start-symbol"></div>
+    <div id="start-msg"></div>
+    <button id="start-btn">Start!</button>
+  </div>
+</div>
+
+<script>
+const WIN_LINES = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6],
+];
+
+// Wheel is drawn with segment 0 (X) starting at 12 o'clock and going clockwise.
+// To bring segment i's center to the pointer at the top, rotate by:
+//   θ = (337.5 - i * 45) mod 360
+// X segments (i = 0, 2, 4, 6): 337.5, 247.5, 157.5, 67.5
+// O segments (i = 1, 3, 5, 7): 292.5, 202.5, 112.5, 22.5
+const SEG_CENTERS = {
+  X: [337.5, 247.5, 157.5, 67.5],
+  O: [292.5, 202.5, 112.5, 22.5],
+};
+
+let board = Array(9).fill(null);
+let currentPlayer = 'X';
+let firstPlayer = 'O'; // toggles to 'X' on first showStartOverlay call
+let spinResult = null;
+let spinning = false;
+let gameOver = false;
+let wheelRotation = 0;
+
+const wheelEl      = document.getElementById('wheel');
+const spinBtn      = document.getElementById('spin-btn');
+const spinResultEl = document.getElementById('spin-result');
+const turnInfoEl   = document.getElementById('turn-info');
+const cells        = [...document.querySelectorAll('.cell')];
+const winOverlay   = document.getElementById('win-overlay');
+const winEmoji     = document.getElementById('win-emoji');
+const winMsg       = document.getElementById('win-msg');
+const playAgainBtn = document.getElementById('play-again-btn');
+const startOverlay = document.getElementById('start-overlay');
+const startSymbol  = document.getElementById('start-symbol');
+const startMsg     = document.getElementById('start-msg');
+const startBtn     = document.getElementById('start-btn');
+
+function buildWheel() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const cx = 100, cy = 100, r = 95;
+  const segments = 8;
+  const segDeg = 360 / segments;
+
+  for (let i = 0; i < segments; i++) {
+    const isX = i % 2 === 0;
+    const a0 = (-90 + i * segDeg) * Math.PI / 180;
+    const a1 = (-90 + (i + 1) * segDeg) * Math.PI / 180;
+    const x0 = cx + r * Math.cos(a0);
+    const y0 = cy + r * Math.sin(a0);
+    const x1 = cx + r * Math.cos(a1);
+    const y1 = cy + r * Math.sin(a1);
+
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d',
+      `M${cx} ${cy} L${x0.toFixed(2)} ${y0.toFixed(2)} ` +
+      `A${r} ${r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z`
+    );
+    path.setAttribute('fill', isX ? '#3b82f6' : '#ef4444');
+    wheelEl.appendChild(path);
+
+    const am = (-90 + (i + 0.5) * segDeg) * Math.PI / 180;
+    const tr = r * 0.62;
+    const tx = (cx + tr * Math.cos(am)).toFixed(2);
+    const ty = (cy + tr * Math.sin(am)).toFixed(2);
+
+    const txt = document.createElementNS(ns, 'text');
+    txt.setAttribute('x', tx);
+    txt.setAttribute('y', ty);
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('dominant-baseline', 'middle');
+    txt.setAttribute('fill', '#ffffff');
+    txt.setAttribute('font-size', '26');
+    txt.setAttribute('font-weight', '900');
+    txt.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+    txt.textContent = isX ? 'X' : 'O';
+    wheelEl.appendChild(txt);
+  }
+
+  // Tick marks at every segment boundary
+  for (let i = 0; i < segments; i++) {
+    const a = (-90 + i * segDeg) * Math.PI / 180;
+    const inner = cx + (r - 4) * Math.cos(a);
+    const innerY = cy + (r - 4) * Math.sin(a);
+    const outer = cx + r * Math.cos(a);
+    const outerY = cy + r * Math.sin(a);
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', inner.toFixed(2));
+    line.setAttribute('y1', innerY.toFixed(2));
+    line.setAttribute('x2', outer.toFixed(2));
+    line.setAttribute('y2', outerY.toFixed(2));
+    line.setAttribute('stroke', '#ffffff');
+    line.setAttribute('stroke-width', '2');
+    wheelEl.appendChild(line);
+  }
+
+  // Center hub
+  const hub = document.createElementNS(ns, 'circle');
+  hub.setAttribute('cx', cx);
+  hub.setAttribute('cy', cy);
+  hub.setAttribute('r', 9);
+  hub.setAttribute('fill', '#1a1a2e');
+  wheelEl.appendChild(hub);
+}
+
+function getTarget(result) {
+  const centers = SEG_CENTERS[result];
+  const center = centers[Math.floor(Math.random() * centers.length)];
+  const wobble = (Math.random() - 0.5) * 26; // ±13° within the segment
+  const targetAngle = (center + wobble + 360) % 360;
+
+  const currAngle = ((wheelRotation % 360) + 360) % 360;
+  let delta = (targetAngle - currAngle + 360) % 360;
+  if (delta < 45) delta += 360;
+
+  const fullSpins = (5 + Math.floor(Math.random() * 4)) * 360;
+  return wheelRotation + fullSpins + delta;
+}
+
+function doSpin() {
+  if (spinning || spinResult !== null || gameOver) return;
+  spinning = true;
+  spinBtn.disabled = true;
+  spinResultEl.textContent = '';
+  spinResultEl.className = '';
+
+  const result = Math.random() < 0.5 ? 'X' : 'O';
+  const target = getTarget(result);
+
+  wheelEl.style.transition = 'transform 5s cubic-bezier(0.15, 0.92, 0.08, 1)';
+  wheelEl.style.transform = `rotate(${target}deg)`;
+  wheelRotation = target;
+
+  setTimeout(() => {
+    spinning = false;
+    spinResult = result;
+    spinResultEl.textContent = `You'll place: ${result}`;
+    spinResultEl.className = result.toLowerCase() + ' pop';
+    enableCells();
+  }, 5000);
+}
+
+function enableCells() {
+  cells.forEach(cell => {
+    const i = +cell.dataset.i;
+    if (board[i] === null) cell.classList.add('available');
+  });
+}
+
+function disableCells() {
+  cells.forEach(cell => cell.classList.remove('available'));
+}
+
+function handleCell(e) {
+  const cell = e.currentTarget;
+  const i = +cell.dataset.i;
+
+  if (spinResult === null || board[i] !== null || gameOver || spinning) return;
+
+  board[i] = spinResult;
+  cell.textContent = spinResult;
+  cell.classList.add(spinResult.toLowerCase());
+  disableCells();
+
+  const line = checkWin();
+  if (line) {
+    line.forEach(idx => cells[idx].classList.add('winning'));
+    endGame(board[line[0]]);
+    return;
+  }
+
+  if (board.every(v => v !== null)) {
+    endGame(null);
+    return;
+  }
+
+  currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+  spinResult = null;
+  spinResultEl.textContent = '';
+  spinResultEl.className = '';
+  spinBtn.disabled = false;
+  updateTurn();
+}
+
+function checkWin() {
+  for (const line of WIN_LINES) {
+    const [a, b, c] = line;
+    if (board[a] && board[a] === board[b] && board[b] === board[c]) return line;
+  }
+  return null;
+}
+
+function endGame(symbol) {
+  gameOver = true;
+  spinBtn.disabled = true;
+  if (symbol) {
+    winEmoji.textContent = '🎉';
+    winMsg.textContent = `Player ${symbol} wins!`;
+    winMsg.className = symbol.toLowerCase();
+  } else {
+    winEmoji.textContent = '🤝';
+    winMsg.textContent = "It's a draw!";
+    winMsg.className = '';
+  }
+  setTimeout(() => winOverlay.classList.add('show'), 600);
+}
+
+function updateTurn() {
+  turnInfoEl.textContent = `Player ${currentPlayer}'s turn`;
+  turnInfoEl.className = currentPlayer === 'X' ? 'x-turn' : 'o-turn';
+}
+
+function resetGame() {
+  board = Array(9).fill(null);
+  spinResult = null;
+  spinning = false;
+  gameOver = false;
+
+  cells.forEach(cell => {
+    cell.textContent = '';
+    cell.className = 'cell';
+  });
+  spinResultEl.textContent = '';
+  spinResultEl.className = '';
+  winOverlay.classList.remove('show');
+  showStartOverlay();
+}
+
+function showStartOverlay() {
+  firstPlayer = firstPlayer === 'X' ? 'O' : 'X';
+  currentPlayer = firstPlayer;
+  startSymbol.textContent = firstPlayer;
+  startSymbol.className = firstPlayer.toLowerCase() + ' pop';
+  startMsg.textContent = `Player ${firstPlayer} goes first!`;
+  spinBtn.disabled = true;
+  startOverlay.classList.add('show');
+  updateTurn();
+}
+
+function dismissStart() {
+  startOverlay.classList.remove('show');
+  spinBtn.disabled = false;
+}
+
+spinBtn.addEventListener('click', doSpin);
+playAgainBtn.addEventListener('click', resetGame);
+startBtn.addEventListener('click', dismissStart);
+cells.forEach(cell => cell.addEventListener('click', handleCell));
+
+buildWheel();
+showStartOverlay();
+</script>
+</body>
+</html>
