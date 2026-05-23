@@ -6,8 +6,8 @@
   <title>Enhanced Tic-Tac-Toe</title>
   <style>
     :root {
-      --x: #3b82f6;
-      --o: #ef4444;
+      --p1: #3b82f6;
+      --p2: #ef4444;
       --bg: #faf8f5;
       --surface: #ffffff;
       --text: #1a1a2e;
@@ -51,8 +51,8 @@
       border: 2.5px solid var(--border);
       transition: border-color 0.2s, color 0.2s;
     }
-    #turn-info.x-turn { border-color: var(--x); color: var(--x); }
-    #turn-info.o-turn { border-color: var(--o); color: var(--o); }
+    #turn-info.x-turn { border-color: var(--p1); color: var(--p1); }
+    #turn-info.o-turn { border-color: var(--p2); color: var(--p2); }
 
     #spinner-section {
       display: flex;
@@ -113,14 +113,21 @@
       min-height: 1.4rem;
       text-align: center;
     }
-    #spin-result.x { color: var(--x); }
-    #spin-result.o { color: var(--o); }
+    #spin-result.x { color: var(--p1); }
+    #spin-result.o { color: var(--p2); }
 
     #board {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
       gap: 7px;
-      width: min(82vw, 320px);
+      /* grid-template-columns set in JS based on current game */
+    }
+    body.game-tictactoe #board { width: min(82vw, 320px); }
+    body.game-connect4 #board {
+      width: min(94vw, 360px);
+      gap: 5px;
+      padding: 6px;
+      background: #1e3a8a;
+      border-radius: 12px;
     }
 
     .cell {
@@ -142,11 +149,66 @@
     .cell.available { cursor: pointer; }
     .cell.available:hover { background: #f3f4f6; }
     .cell.available:active { transform: scale(0.92); }
-    .cell.x { color: var(--x); }
-    .cell.o { color: var(--o); }
-    .cell.winning {
+
+    /* Tic-Tac-Toe: letters in player color */
+    body.game-tictactoe .cell.x { color: var(--p1); }
+    body.game-tictactoe .cell.o { color: var(--p2); }
+    body.game-tictactoe .cell.winning {
       background: #fef3c7;
       border-color: var(--win);
+    }
+
+    /* Connect 4: cells are slots; placed chips fill the disc */
+    body.game-connect4 .cell {
+      border-radius: 50%;
+      font-size: 0;
+      border-color: #1e3a8a;
+      background: #f9fafb;
+    }
+    body.game-connect4 .cell.available:hover { background: #e5e7eb; }
+    body.game-connect4 .cell.x { background: var(--p1); border-color: rgba(0,0,0,0.15); }
+    body.game-connect4 .cell.o { background: var(--p2); border-color: rgba(0,0,0,0.15); }
+    body.game-connect4 .cell.winning {
+      box-shadow: 0 0 0 3px var(--win), 0 0 14px rgba(251,191,36,0.7);
+    }
+
+    #game-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: 0.85rem;
+      justify-content: center;
+    }
+    .game-label {
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.68rem;
+    }
+    .game-toggle {
+      display: flex;
+      gap: 2px;
+      padding: 2px;
+      background: #f3f4f6;
+      border-radius: 999px;
+    }
+    .game-btn {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.28rem 0.7rem;
+      border: none;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .game-btn.selected {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
     #win-overlay, #start-overlay {
@@ -267,8 +329,8 @@
       min-width: 2.2rem;
       text-align: center;
     }
-    #bias-label-x { color: var(--x); }
-    #bias-label-o { color: var(--o); }
+    #bias-label-x { color: var(--p1); }
+    #bias-label-o { color: var(--p2); }
     #bias-preview {
       width: 34px;
       height: 34px;
@@ -279,7 +341,7 @@
       -webkit-appearance: none;
       appearance: none;
       height: 5px;
-      background: linear-gradient(to right, var(--x), var(--o));
+      background: linear-gradient(to right, var(--p1), var(--p2));
       border-radius: 999px;
       outline: none;
       margin: 0;
@@ -310,8 +372,8 @@
       font-size: 1.4rem;
       font-weight: 800;
     }
-    #win-msg.x { color: var(--x); }
-    #win-msg.o { color: var(--o); }
+    #win-msg.x { color: var(--p1); }
+    #win-msg.o { color: var(--p2); }
 
     #start-symbol {
       font-size: 4.5rem;
@@ -319,8 +381,8 @@
       line-height: 1;
       margin-bottom: 0.25rem;
     }
-    #start-symbol.x { color: var(--x); }
-    #start-symbol.o { color: var(--o); }
+    #start-symbol.x { color: var(--p1); }
+    #start-symbol.o { color: var(--p2); }
     #start-msg {
       font-size: 1.25rem;
       font-weight: 800;
@@ -377,17 +439,7 @@
   <div id="spin-result"></div>
 </div>
 
-<div id="board">
-  <div class="cell" data-i="0"></div>
-  <div class="cell" data-i="1"></div>
-  <div class="cell" data-i="2"></div>
-  <div class="cell" data-i="3"></div>
-  <div class="cell" data-i="4"></div>
-  <div class="cell" data-i="5"></div>
-  <div class="cell" data-i="6"></div>
-  <div class="cell" data-i="7"></div>
-  <div class="cell" data-i="8"></div>
-</div>
+<div id="board"></div>
 
 <div id="win-overlay">
   <div class="card">
@@ -420,17 +472,68 @@
       </div>
     </div>
     <button id="start-btn">Start!</button>
+    <div id="game-selector">
+      <span class="game-label">Game</span>
+      <div class="game-toggle">
+        <button class="game-btn" data-game="tictactoe">Tic-Tac-Toe</button>
+        <button class="game-btn" data-game="connect4">Connect 4</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-const WIN_LINES = [
-  [0,1,2],[3,4,5],[6,7,8],
-  [0,3,6],[1,4,7],[2,5,8],
-  [0,4,8],[2,4,6],
-];
+// ─── Game registry ───────────────────────────────────────────────────────────
+// Each game declares its players (color + optional letter for the wheel and
+// board, plus a display label), board geometry, win length, placement rule,
+// and the wedge layouts for Random/Balanced modes. To add another variant,
+// add a new entry here — most other code is data-driven from this config.
+function makeC4Wedges() {
+  // 42 wedges arranged as 6 contiguous groups of 7, alternating X and O around
+  // the wheel: XXXXXXX OOOOOOO XXXXXXX OOOOOOO XXXXXXX OOOOOOO.
+  const out = [];
+  for (let g = 0; g < 3; g++) {
+    for (let i = 0; i < 7; i++) out.push('X');
+    for (let i = 0; i < 7; i++) out.push('O');
+  }
+  return out;
+}
+const GAMES = {
+  tictactoe: {
+    name: 'Tic-Tac-Toe',
+    players: {
+      X: { color: '#3b82f6', letter: 'X', label: 'X' },
+      O: { color: '#ef4444', letter: 'O', label: 'O' }
+    },
+    cols: 3,
+    rows: 3,
+    winLength: 3,
+    placement: 'any',
+    wedgesRandom: ['X','O','X','O','X','O','X','O'],
+    wedgesBalanced: ['X','O','X','O','X','O','X','O','X','O','X','O']
+  },
+  connect4: {
+    name: 'Connect 4',
+    players: {
+      X: { color: '#dc2626', letter: null, label: 'Red' },
+      O: { color: '#eab308', letter: null, label: 'Yellow' }
+    },
+    cols: 7,
+    rows: 6,
+    winLength: 4,
+    placement: 'column',
+    wedgesRandom: ['X','O','X','O','X','O','X','O'],
+    wedgesBalanced: makeC4Wedges()
+  }
+};
 
-let board = Array(9).fill(null);
+function game()        { return GAMES[currentGame]; }
+function player(id)    { return game().players[id]; }
+function playerLabel(id) { return player(id).label; }
+function playerColor(id) { return player(id).color; }
+
+let currentGame = 'tictactoe';
+let board = [];
 let currentPlayer = 'X';
 let firstPlayer = 'O'; // toggles to 'X' on first showStartOverlay call
 let spinResult = null;
@@ -442,12 +545,13 @@ let biased = false;         // whether bias slider is in effect
 let biasValue = 50;         // 10..90; share of weight given to X (50 = even)
 let wedges = [];            // [{s:'X'|'O', w:number}, ...]
 let lastWedgeIndex = null;  // index of last-landed wedge (for balanced removal)
+let cells = [];             // dynamic; rebuilt by buildBoard()
 
 const wheelEl      = document.getElementById('wheel');
 const spinBtn      = document.getElementById('spin-btn');
 const spinResultEl = document.getElementById('spin-result');
 const turnInfoEl   = document.getElementById('turn-info');
-const cells        = [...document.querySelectorAll('.cell')];
+const boardEl      = document.getElementById('board');
 const winOverlay   = document.getElementById('win-overlay');
 const winEmoji     = document.getElementById('win-emoji');
 const winMsg       = document.getElementById('win-msg');
@@ -464,11 +568,10 @@ const biasSlider   = document.getElementById('bias-slider');
 const biasPreview  = document.getElementById('bias-preview');
 const biasLabelX   = document.getElementById('bias-label-x');
 const biasLabelO   = document.getElementById('bias-label-o');
+const gameBtns     = [...document.querySelectorAll('.game-btn')];
 
 function initWheel() {
-  const symbols = mode === 'balanced'
-    ? ['X','O','X','O','X','O','X','O','X','O','X','O']  // 12 wedges, 6 of each
-    : ['X','O','X','O','X','O','X','O'];                  // 8 wedges, 4 of each
+  const symbols = mode === 'balanced' ? game().wedgesBalanced : game().wedgesRandom;
   // Slider runs left→right as X-favored→O-favored, so low values mean more X.
   const xShare = biased ? (100 - biasValue) / 100 : 0.5;
   wedges = symbols.map(s => ({ s, w: s === 'X' ? xShare : 1 - xShare }));
@@ -503,7 +606,7 @@ function buildWheel() {
     const startDeg = boundaries[i];
     const endDeg = boundaries[i + 1];
     const arcDeg = endDeg - startDeg;
-    const isX = wedges[i].s === 'X';
+    const p = player(wedges[i].s);
 
     const a0 = (-90 + startDeg) * Math.PI / 180;
     const a1 = (-90 + endDeg) * Math.PI / 180;
@@ -518,11 +621,12 @@ function buildWheel() {
       `M${cx} ${cy} L${x0.toFixed(2)} ${y0.toFixed(2)} ` +
       `A${r} ${r} 0 ${largeArc} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z`
     );
-    path.setAttribute('fill', isX ? '#3b82f6' : '#ef4444');
+    path.setAttribute('fill', p.color);
     wheelEl.appendChild(path);
 
-    // Only draw the letter when the wedge is wide enough to fit one legibly
-    if (arcDeg >= 14) {
+    // Skip the letter if the player has no letter (e.g. Connect 4 chips) or
+    // if the wedge is too narrow to render one legibly.
+    if (p.letter && arcDeg >= 14) {
       const am = (-90 + startDeg + arcDeg / 2) * Math.PI / 180;
       const tr = r * 0.62;
       const tx = (cx + tr * Math.cos(am)).toFixed(2);
@@ -538,7 +642,7 @@ function buildWheel() {
       txt.setAttribute('font-size', String(fontSize));
       txt.setAttribute('font-weight', '900');
       txt.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
-      txt.textContent = wedges[i].s;
+      txt.textContent = p.letter;
       wheelEl.appendChild(txt);
     }
   }
@@ -625,17 +729,24 @@ function doSpin() {
   setTimeout(() => {
     spinning = false;
     spinResult = result;
-    spinResultEl.textContent = `You'll place: ${result}`;
+    spinResultEl.textContent = `You'll place: ${playerLabel(result)}`;
     spinResultEl.className = result.toLowerCase() + ' pop';
     enableCells();
   }, 5000);
 }
 
 function enableCells() {
-  cells.forEach(cell => {
-    const i = +cell.dataset.i;
-    if (board[i] === null) cell.classList.add('available');
-  });
+  const g = game();
+  if (g.placement === 'column') {
+    cells.forEach((cell, i) => {
+      const col = i % g.cols;
+      if (lowestEmptyInColumn(col) !== null) cell.classList.add('available');
+    });
+  } else {
+    cells.forEach((cell, i) => {
+      if (board[i] === null) cell.classList.add('available');
+    });
+  }
 }
 
 function disableCells() {
@@ -643,14 +754,23 @@ function disableCells() {
 }
 
 function handleCell(e) {
+  if (spinResult === null || gameOver || spinning) return;
   const cell = e.currentTarget;
-  const i = +cell.dataset.i;
+  const tappedIdx = +cell.dataset.i;
+  const g = game();
 
-  if (spinResult === null || board[i] !== null || gameOver || spinning) return;
+  // Figure out where the piece actually lands.
+  let placeIdx = tappedIdx;
+  if (g.placement === 'column') {
+    const col = tappedIdx % g.cols;
+    placeIdx = lowestEmptyInColumn(col);
+    if (placeIdx === null) return;  // column full
+  } else if (board[tappedIdx] !== null) {
+    return;
+  }
 
-  board[i] = spinResult;
-  cell.textContent = spinResult;
-  cell.classList.add(spinResult.toLowerCase());
+  board[placeIdx] = spinResult;
+  paintCell(cells[placeIdx], spinResult);
   disableCells();
 
   const line = checkWin();
@@ -680,10 +800,40 @@ function handleCell(e) {
   updateTurn();
 }
 
+function lowestEmptyInColumn(col) {
+  const g = game();
+  for (let r = g.rows - 1; r >= 0; r--) {
+    const idx = r * g.cols + col;
+    if (board[idx] === null) return idx;
+  }
+  return null;
+}
+
+function paintCell(cell, symbol) {
+  const p = player(symbol);
+  cell.classList.add(symbol.toLowerCase());
+  if (p.letter) cell.textContent = p.letter;
+}
+
 function checkWin() {
-  for (const line of WIN_LINES) {
-    const [a, b, c] = line;
-    if (board[a] && board[a] === board[b] && board[b] === board[c]) return line;
+  const { cols, rows, winLength } = game();
+  const directions = [[0,1],[1,0],[1,1],[1,-1]];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const sym = board[r * cols + c];
+      if (!sym) continue;
+      for (const [dr, dc] of directions) {
+        const line = [];
+        for (let k = 0; k < winLength; k++) {
+          const nr = r + dr * k;
+          const nc = c + dc * k;
+          if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) break;
+          if (board[nr * cols + nc] !== sym) break;
+          line.push(nr * cols + nc);
+        }
+        if (line.length === winLength) return line;
+      }
+    }
   }
   return null;
 }
@@ -693,7 +843,7 @@ function endGame(symbol) {
   spinBtn.disabled = true;
   if (symbol) {
     winEmoji.textContent = '🎉';
-    winMsg.textContent = `Player ${symbol} wins!`;
+    winMsg.textContent = `Player ${playerLabel(symbol)} wins!`;
     winMsg.className = symbol.toLowerCase();
   } else {
     winEmoji.textContent = '🤝';
@@ -704,12 +854,13 @@ function endGame(symbol) {
 }
 
 function updateTurn() {
-  turnInfoEl.textContent = `Player ${currentPlayer}'s turn`;
+  turnInfoEl.textContent = `Player ${playerLabel(currentPlayer)}'s turn`;
   turnInfoEl.className = currentPlayer === 'X' ? 'x-turn' : 'o-turn';
 }
 
 function resetGame() {
-  board = Array(9).fill(null);
+  const g = game();
+  board = Array(g.cols * g.rows).fill(null);
   spinResult = null;
   spinning = false;
   gameOver = false;
@@ -718,6 +869,7 @@ function resetGame() {
   cells.forEach(cell => {
     cell.textContent = '';
     cell.className = 'cell';
+    cell.style.backgroundColor = '';
   });
   spinResultEl.textContent = '';
   spinResultEl.className = '';
@@ -725,13 +877,56 @@ function resetGame() {
   showStartOverlay();
 }
 
+function buildBoard() {
+  const g = game();
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = `repeat(${g.cols}, 1fr)`;
+  document.body.classList.remove('game-tictactoe', 'game-connect4');
+  document.body.classList.add(`game-${currentGame}`);
+  for (let i = 0; i < g.cols * g.rows; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.i = i;
+    boardEl.appendChild(cell);
+  }
+  cells = [...boardEl.querySelectorAll('.cell')];
+  board = Array(g.cols * g.rows).fill(null);
+}
+
+function updateGameColors() {
+  const g = game();
+  document.documentElement.style.setProperty('--p1', g.players.X.color);
+  document.documentElement.style.setProperty('--p2', g.players.O.color);
+}
+
+function updateGameUI() {
+  gameBtns.forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.game === currentGame);
+  });
+}
+
+function changeGame(newGame) {
+  if (currentGame === newGame) return;
+  currentGame = newGame;
+  updateGameColors();
+  buildBoard();
+  updateGameUI();
+  // Refresh visuals that depend on game colors / labels / wedge counts
+  startSymbol.textContent = player(firstPlayer).letter || '●';
+  startMsg.textContent = `Player ${playerLabel(firstPlayer)} goes first!`;
+  drawBiasPreview();
+  initWheel();
+  updateTurn();
+}
+
 function showStartOverlay() {
   firstPlayer = firstPlayer === 'X' ? 'O' : 'X';
   currentPlayer = firstPlayer;
-  startSymbol.textContent = firstPlayer;
+  startSymbol.textContent = player(firstPlayer).letter || '●';
   startSymbol.className = firstPlayer.toLowerCase() + ' pop';
-  startMsg.textContent = `Player ${firstPlayer} goes first!`;
+  startMsg.textContent = `Player ${playerLabel(firstPlayer)} goes first!`;
   spinBtn.disabled = true;
+  updateGameUI();
   updateModeUI();
   updateBiasUI();
   initWheel();
@@ -780,10 +975,13 @@ function drawBiasPreview() {
   biasLabelX.textContent = `${xPct}%`;
   biasLabelO.textContent = `${oPct}%`;
 
+  const xColor = playerColor('X');
+  const oColor = playerColor('O');
+
   if (xShare <= 0 || xShare >= 1) {
     const c = document.createElementNS(ns, 'circle');
     c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
-    c.setAttribute('fill', xShare >= 1 ? '#3b82f6' : '#ef4444');
+    c.setAttribute('fill', xShare >= 1 ? xColor : oColor);
     biasPreview.appendChild(c);
     return;
   }
@@ -806,8 +1004,8 @@ function drawBiasPreview() {
   // Draw O on the right half first (clockwise from top), then X fills the
   // remainder on the left — so at 50/50 it splits cleanly left/right.
   const oDeg = (1 - xShare) * 360;
-  drawSlice(0, oDeg, '#ef4444');
-  drawSlice(oDeg, 360 - oDeg, '#3b82f6');
+  drawSlice(0, oDeg, oColor);
+  drawSlice(oDeg, 360 - oDeg, xColor);
 }
 
 function changeBias(newBiased) {
@@ -829,8 +1027,15 @@ startBtn.addEventListener('click', dismissStart);
 modeBtns.forEach(btn => btn.addEventListener('click', () => changeMode(btn.dataset.mode)));
 biasBtns.forEach(btn => btn.addEventListener('click', () => changeBias(btn.dataset.bias === 'biased')));
 biasSlider.addEventListener('input', onBiasSlider);
-cells.forEach(cell => cell.addEventListener('click', handleCell));
+gameBtns.forEach(btn => btn.addEventListener('click', () => changeGame(btn.dataset.game)));
+// Event delegation since cells are rebuilt on game change
+boardEl.addEventListener('click', e => {
+  const cell = e.target.closest('.cell');
+  if (cell) handleCell({ currentTarget: cell });
+});
 
+updateGameColors();
+buildBoard();
 showStartOverlay();
 </script>
 </body>
