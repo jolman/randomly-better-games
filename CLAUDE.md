@@ -46,17 +46,15 @@ The symbol you place each turn is determined by a wheel spin, not by which playe
 
 ## Repo / deployment
 
-- Local folder name is `randomized-tic-tac-toe`; intended GitHub repo name is `enhanced-tic-tac-toe`. The mismatch is intentional and was discussed — local folder kept as-is to avoid mid-session rename hassles.
+- Local folder name is `randomized-tic-tac-toe`; intended GitHub repo name is `randomly-better-games`. The mismatch is intentional — the local folder predates the project naming and was kept as-is to avoid mid-session rename hassles. The repo name leaves room for future variants that aren't specifically about random mechanics.
 - Intended deployment: GitHub Pages on a custom subdomain managed via Namecheap DNS. Not yet pushed to a remote.
 
 ## To-do
 
 Pre-deployment polish, none blocking:
 
-- [ ] Push to GitHub as `enhanced-tic-tac-toe` and enable GitHub Pages.
+- [ ] Push to GitHub as `randomly-better-games` and enable GitHub Pages.
 - [ ] Configure a custom Namecheap subdomain (CNAME file + DNS record).
-- [ ] Add a favicon (a single-emoji data-URI is plenty).
-- [ ] Add meta description and Open Graph tags so shared links look intentional.
 - [ ] Accessibility pass: ARIA labels on the wheel and cells, keyboard support for cell selection.
 - [ ] (Optional) Rename the local folder to match the repo name.
 
