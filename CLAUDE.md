@@ -46,16 +46,17 @@ The symbol you place each turn is determined by a wheel spin, not by which playe
 
 ## Repo / deployment
 
-- Local folder name is `randomized-tic-tac-toe`; intended GitHub repo name is `randomly-better-games`. The mismatch is intentional — the local folder predates the project naming and was kept as-is to avoid mid-session rename hassles. The repo name leaves room for future variants that aren't specifically about random mechanics.
-- Intended deployment: GitHub Pages on a custom subdomain managed via Namecheap DNS. Not yet pushed to a remote.
+- Local folder name is `randomized-tic-tac-toe`; GitHub repo is `randomly-better-games` (`https://github.com/jolman/randomly-better-games`). The mismatch is intentional — the local folder predates the project naming and was kept as-is to avoid mid-session rename hassles. The repo name leaves room for future variants that aren't specifically about random mechanics.
+- Deployed via GitHub Pages at **https://games.jayolman.com/**. Custom domain configured via a `CNAME` file (containing `games.jayolman.com`) plus a Namecheap CNAME record (`games` → `jolman.github.io`). HTTPS provisioned by Let's Encrypt and enforced.
+- Cert provisioning trick: if `https_certificate.state` is stuck after DNS resolves, toggle the custom domain off and back on via `gh api repos/jolman/randomly-better-games/pages -X PUT -f cname=` then re-add it. Then trigger a rebuild via `gh api repos/jolman/randomly-better-games/pages/builds -X POST` and set `https_enforced=true`.
 
 ## To-do
 
-Pre-deployment polish, none blocking:
+Non-blocking polish:
 
-- [ ] Push to GitHub as `randomly-better-games` and enable GitHub Pages.
-- [ ] Configure a custom Namecheap subdomain (CNAME file + DNS record).
+- [ ] Investigate reported mobile-only visual bug (to be discussed).
 - [ ] Accessibility pass: ARIA labels on the wheel and cells, keyboard support for cell selection.
+- [ ] Consider Goatcounter (or similar) if the user wants visitor counts later.
 - [ ] (Optional) Rename the local folder to match the repo name.
 
 ## Working style
