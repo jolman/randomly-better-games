@@ -1,4 +1,4 @@
-# Enhanced Tic-Tac-Toe
+# Randomly Better Games
 
 A two-player twist on classic grid games where you can't always choose your symbol. On each turn, a wheel spins and decides what you'll be placing — sometimes you'll find yourself playing for your opponent. The winner is whoever lines up the required number of their symbol in a row, regardless of which player physically placed them.
 

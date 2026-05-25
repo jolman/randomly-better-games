@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Enhanced Tic-Tac-Toe</title>
+  <title>Randomly Better Games</title>
   <style>
     :root {
       --p1: #3b82f6;
@@ -40,6 +40,15 @@
       font-weight: 800;
       letter-spacing: -0.03em;
       margin-top: 0.25rem;
+    }
+
+    #subtitle {
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-align: center;
+      max-width: 28rem;
+      line-height: 1.35;
+      margin: -0.25rem 0.5rem 0;
     }
 
     #turn-info {
@@ -427,7 +436,8 @@
 </head>
 <body>
 
-<h1>Enhanced Tic-Tac-Toe</h1>
+<h1>Randomly Better Games</h1>
+<p id="subtitle">A wheel decides what you place each turn, so sometimes you're stuck playing for your opponent!</p>
 <div id="turn-info">Player X's turn</div>
 
 <div id="spinner-section">
